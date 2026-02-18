@@ -2,9 +2,24 @@ Installazione docker Jenkins + Maven: https://www.educative.io/answers/run-maven
 Installazione docker Jenkins + SonarQube: https://funnelgarden.com/sonarqube-jenkins-docker/
 Installazione docker Jenkins + SonarQube + Dependency-Check: https://jay75chauhan.medium.com/jenkins-ci-cd-with-docker-trivy-sonarqube-owasp-dependency-check-fc9b643aef90
 Configurazione OWASP Dependency-Check su Jenkins: https://thelinuxcode.com/owasp-dependency-check-jenkins/
+Configurazione OWASP Dependency-Check con Maven: https://www.baeldung.com/java-maven-owasp-dependency-check
+Configurazione OWASP Dependency-Check: https://security.docs.wso2.com/en/latest/security-guidelines/secure-engineering-guidelines/external-dependency-analysis-analysis-using-owasp-dependency-check/
 Video configurazione jenkins + sonarqube (no docker): https://www.youtube.com/watch?v=KsTMy0920go
 Docker compose jenkins + sonarqube con network condiviso?: https://www.devopsroles.com/sonarqube-from-a-jenkins-pipeline-job-in-docker
 Repository da compilare: https://github.com/shashirajraja/onlinebookstore
+
+### TODO
+[x] Controllare per installazione/configurazione SonarQube, OWASP Dependency-Check;
+    Forse bisogna aggiungere 'maven install' all'inizio della pipeline, in modo che installi le dipendenze;
+    Esempio:
+        stage('Install Dependencies') {
+        steps {
+            sh 'mvn install' 
+        }
+    }
+[x] Aggiungere gestione fallimento/successo build (sezione post nella pipeline?);
+[ ] Salvare artefatto .jar in folder precisa (solo se build non fallisce);
+[ ] Aggiungere SpotBugs alla pipeline Jenkins (utilizzato sempre per analisi statica codice e.g. SonarQube, quindi eseguirlo prima di OWASP Dependecy-Check etc.);
 
 Nel caso si usasse Podman invece che Docker, per qualche motivo non si può usare la codifica
 <nome_immagine>:latest di default.
@@ -55,7 +70,9 @@ Comandi comodi per Docker:
     // Controllare i container compose 
     docker compose ps -a
 
-Controllare per installazione/configurazione SonarQube, OWASP Dependency-Check.
+Nel caso di errori, controllare che l'IP del container SonarQube non sia cambiato. Si può fare con podman network
+inspect <nome_rete>.
+Nel caso fosse cambiato, bisogna aggiornarlo nelle impostazioni di Jenkins.
 
 Script Pipeline:
 
@@ -92,7 +109,7 @@ pipeline {
     }
 }
 
-NUOVO script pipeline, che sembra funzionare, però bisogna capire perché non analizza i file Java:
+NUOVO script pipeline, che sembra funzionare, però bisogna capire perché non analizza i file .java del progetto:
 
 pipeline {
     agent any
@@ -122,6 +139,95 @@ pipeline {
         }
     }
 }
+
+NUOVO script pipeline, che sembra funzionare (eccetto Dependency-Check) ed analizzare i file .java del progetto:
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
+            }
+        }
+
+        stage('Check') {
+            steps {
+                withSonarQubeEnv(installationName: 'sq1') {
+                sh 'mvn clean org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.inclusions=**/*.java -Dsonar.java.binaries=.'
+                }
+            }
+        }
+
+        stage('OWASP Dependency-Check Vulnerabilities') {
+      steps {
+        dependencyCheck additionalArguments: '''
+                    -o './'
+                    -s './'
+                    -f 'ALL'
+                    --prettyPrint''', odcInstallation: 'dependency-check'
+
+        dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+      }
+    }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completata con successo!'
+        }
+        failure {
+            echo 'Pipeline fallita!'
+        }
+    }
+}
+
+Bisognava lanciare "maven clean install ..." e specificare a Dependecy-Check la directory targets creata con quest'ultimo comando.
+NUOVA pipeline:
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
+            }
+        }
+
+        stage('Check') {
+            steps {
+                withSonarQubeEnv(installationName: 'sq1') {
+                sh 'mvn clean install org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.inclusions=**/*.java -Dsonar.java.binaries=.'
+                }
+            }
+        }
+
+        stage('OWASP Dependency-Check Vulnerabilities') {
+      steps {
+        dependencyCheck additionalArguments: '''
+                    -o './'
+                    -s './target'
+                    -f 'ALL'
+                    --prettyPrint''', odcInstallation: 'dependency-check'
+
+        dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+      }
+    }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completata con successo!'
+        }
+        failure {
+            echo 'Pipeline fallita!'
+        }
+    }
+}
+
+Praticamente specifica la root del progetto come destinazione dei binari.
 
 Sul ThinkPad sembra andare, quindi è corretto. Capire perché sul fisso dava certi errori riguardo i Build Executors (forse bisogna veramente pulire il disco?). 
 Sì, era piena la partizione root.
