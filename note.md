@@ -19,9 +19,11 @@ Repository da compilare: https://github.com/shashirajraja/onlinebookstore
     }
 [x] Aggiungere gestione fallimento/successo build (sezione post nella pipeline?);
 [ ] Salvare artefatto .jar in folder precisa (solo se build non fallisce);
-
-[ ] Aggiungere SpotBugs alla pipeline Jenkins (utilizzato sempre per analisi statica codice e.g. SonarQube, quindi eseguirlo prima di OWASP Dependecy-Check etc.);
-    Capire perché dà un report strano.
+    Però effettivamente si tratta di un'applicativo web, quindi sembra strano che sia un solo jar.
+    L'output della compilazione si trova dentro la directory "target" del workspace;
+[ ] Aggiungere notifica compilazione (e-mail? Forse codice "dummy" per far vedere come funziona e basta); 
+[x] Aggiungere SpotBugs alla pipeline Jenkins (utilizzato sempre per analisi statica codice e.g. SonarQube, quindi eseguirlo prima di OWASP Dependecy-Check etc.);
+    Capire perché dà un report strano (bisognava settare la flag -html).
 
 Nel caso si usasse Podman invece che Docker, per qualche motivo non si può usare la codifica
 <nome_immagine>:latest di default.

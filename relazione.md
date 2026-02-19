@@ -43,7 +43,6 @@
   Si può vedere l'andamento della build in "Builds", sotto.
   Per visualizzare come sta procedendo una build, cliccare sulla build -> "Console Output".
 
-//// CONTINUARE ////
 ## Report Vulnerabilità 
 
 Sono state eseguite analisi di sicurezza utilizzando SonarScanner, SpotBugs e OWASP Depedency-Check.
@@ -55,7 +54,7 @@ compilazione della codebase.
 
 # Analisi OWASP Dependency-Check
 
-OWASP Dependency-Check riporta una serie di problemi di sicurezza riguardo alle librerie utilizzate, specialmente per
+OWASP Dependency-Check riporta una serie di problemi di sicurezza riguardo le librerie utilizzate, specialmente per
 quanto riguarda PostgreSQL (sistema RDSMS utilizzato), webapp-runner (tool che permette di eseguire applicativi web
 Java servlet) e mysql-connector-java (driver che permette agli applicativi Java di connettersi e interagire con database
 MySQL).
@@ -84,4 +83,15 @@ MySQL).
 
 # Analisi SonarScanner
 
+SonarScanner effettua un'analisi statica del codice sorgente, nel nostro caso file .java. 
+In pratica controlla la qualità del codice scritto, sia per quanto riguarda la struttura del codice che la difficoltà per lo sviluppatore nel
+comprenderlo.
+Evidenzia se vengono seguite le Best Practices (standard e linee guida di stesura del codice), riducendo la probabilità
+di introdurre bug, se parti di codice vengono ripetute inutilmente, eccetera.
+
 # Analisi SpotBugs
+
+SpotBugs, a differenza di SonarScanner, effettua un'analisi del bytecode generato durante la compilazione.
+Rispetto ai sorgenti java, l'analisi del bytecode Java (file .class) permette di identificare possibili bug e
+vulnerabilità nel codice in un formato più vicino a quello eseguito dalla macchina virtuale Java (la JVM).
+In questo modo si potrebbero rilevare problemi run-time, per esempio provenienti da ottimizzazioni del compilatore.

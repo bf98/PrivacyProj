@@ -17,7 +17,7 @@ pipeline {
 			}
 			stage('SpotBugs') {
 				steps {
-					sh 'spotbugs -html -output my-report.html -effort:max -xml:withMessages -sourcepath src/main/java target/classes'
+					sh 'spotbugs -html -output target/spotbugs-report.html -effort:max -xml:withMessages -sourcepath src/main/java target/'
 				}
 			}
 
