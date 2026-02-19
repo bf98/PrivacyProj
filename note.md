@@ -19,7 +19,9 @@ Repository da compilare: https://github.com/shashirajraja/onlinebookstore
     }
 [x] Aggiungere gestione fallimento/successo build (sezione post nella pipeline?);
 [ ] Salvare artefatto .jar in folder precisa (solo se build non fallisce);
+
 [ ] Aggiungere SpotBugs alla pipeline Jenkins (utilizzato sempre per analisi statica codice e.g. SonarQube, quindi eseguirlo prima di OWASP Dependecy-Check etc.);
+    Capire perché dà un report strano.
 
 Nel caso si usasse Podman invece che Docker, per qualche motivo non si può usare la codifica
 <nome_immagine>:latest di default.
@@ -59,6 +61,8 @@ Comandi comodi per Docker:
     docker exec -it <container_id> bash
     // Cancellare dati inutilizzati Docker
     docker system prune -a
+    // Cancellare dati Docker in maniera intensiva (tabula rasa)
+    docker system reset
     // Avviare docker-compose per prima volta (con file compose.yaml nella directory corrent)
     docker compose up
     // Stoppare docker-compose ed eliminare i container (sempre nella stessa directory)
@@ -230,9 +234,10 @@ pipeline {
 Praticamente specifica la root del progetto come destinazione dei binari.
 
 Sul ThinkPad sembra andare, quindi è corretto. Capire perché sul fisso dava certi errori riguardo i Build Executors (forse bisogna veramente pulire il disco?). 
-Sì, era piena la partizione root.
+Sì, era piena la partizione di root, e forse pure la home.
 
 Perché il container di SonarQube sul fisso si arresta mentre sul ThinkPad no?
 Sul ThinkPad la versione di docker è 5.4.2. 
 Forse è inutile, ma sul portatile non risulta Java installato nel sistema.
-Riguardava sempre la partizione root, almeno 10% della capienza deve essere libero.
+Riguardava sempre la partizione root, almeno 10% della capienza deve essere libero. Penso stessa cosa per la home, in
+quanto dopo aver cancellato dei file si è avviato correttamente.
