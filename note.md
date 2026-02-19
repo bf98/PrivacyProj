@@ -81,157 +81,207 @@ Nel caso fosse cambiato, bisogna aggiornarlo nelle impostazioni di Jenkins.
 Script Pipeline:
 
 pipeline {
-    agent any
+	agent any
 
-    stages {
-        stage('Checkout') {
-            steps {
-                git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
-            }
-        }
+		stages {
+			stage('Checkout') {
+				steps {
+					git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
+				}
+			}
 
-        stage('Maven Build and Test') {
-            steps {
-                sh 'mvn clean test'
-            }
-        }
+			stage('Maven Build and Test') {
+				steps {
+					sh 'mvn clean test'
+				}
+			}
 
-        stage('Package') {
-            steps {
-                sh 'mvn package'
-            }
-        }
-    }
+			stage('Package') {
+				steps {
+					sh 'mvn package'
+				}
+			}
+		}
 
-    post {
-        success {
-            echo 'Pipeline completata con successo!'
-        }
-        failure {
-            echo 'Pipeline fallita!'
-        }
-    }
+	post {
+		success {
+			echo 'Pipeline completata con successo!'
+		}
+		failure {
+			echo 'Pipeline fallita!'
+		}
+	}
 }
 
 NUOVO script pipeline, che sembra funzionare, però bisogna capire perché non analizza i file .java del progetto:
 
 pipeline {
-    agent any
+	agent any
 
-    stages {
-        stage('Checkout') {
-            steps {
-                git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
-            }
-        }
+		stages {
+			stage('Checkout') {
+				steps {
+					git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
+				}
+			}
 
-        stage('Check') {
-            steps {
-                withSonarQubeEnv(installationName: 'sq1') {
-                sh 'mvn clean org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.exclusions=**/*.java'
-                }
-            }
-        }
-    }
+			stage('Check') {
+				steps {
+					withSonarQubeEnv(installationName: 'sq1') {
+						sh 'mvn clean org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.exclusions=**/*.java'
+					}
+				}
+			}
+		}
 
-    post {
-        success {
-            echo 'Pipeline completata con successo!'
-        }
-        failure {
-            echo 'Pipeline fallita!'
-        }
-    }
+	post {
+		success {
+			echo 'Pipeline completata con successo!'
+		}
+		failure {
+			echo 'Pipeline fallita!'
+		}
+	}
 }
 
 NUOVO script pipeline, che sembra funzionare (eccetto Dependency-Check) ed analizzare i file .java del progetto:
 
 pipeline {
-    agent any
+	agent any
 
-    stages {
-        stage('Checkout') {
-            steps {
-                git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
-            }
-        }
+		stages {
+			stage('Checkout') {
+				steps {
+					git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
+				}
+			}
 
-        stage('Check') {
-            steps {
-                withSonarQubeEnv(installationName: 'sq1') {
-                sh 'mvn clean org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.inclusions=**/*.java -Dsonar.java.binaries=.'
-                }
-            }
-        }
+			stage('Check') {
+				steps {
+					withSonarQubeEnv(installationName: 'sq1') {
+						sh 'mvn clean org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.inclusions=**/*.java -Dsonar.java.binaries=.'
+					}
+				}
+			}
 
-        stage('OWASP Dependency-Check Vulnerabilities') {
-      steps {
-        dependencyCheck additionalArguments: '''
-                    -o './'
-                    -s './'
-                    -f 'ALL'
-                    --prettyPrint''', odcInstallation: 'dependency-check'
+			stage('OWASP Dependency-Check Vulnerabilities') {
+				steps {
+					dependencyCheck additionalArguments: '''
+						-o './'
+						-s './'
+						-f 'ALL'
+						--prettyPrint''', odcInstallation: 'dependency-check'
 
-        dependencyCheckPublisher pattern: 'dependency-check-report.xml'
-      }
-    }
-    }
+						dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+				}
+			}
+		}
 
-    post {
-        success {
-            echo 'Pipeline completata con successo!'
-        }
-        failure {
-            echo 'Pipeline fallita!'
-        }
-    }
+	post {
+		success {
+			echo 'Pipeline completata con successo!'
+		}
+		failure {
+			echo 'Pipeline fallita!'
+		}
+	}
 }
 
 Bisognava lanciare "maven clean install ..." e specificare a Dependecy-Check la directory targets creata con quest'ultimo comando.
 NUOVA pipeline:
 
 pipeline {
-    agent any
+	agent any
 
-    stages {
-        stage('Checkout') {
-            steps {
-                git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
-            }
-        }
+		stages {
+			stage('Checkout') {
+				steps {
+					git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
+				}
+			}
 
-        stage('Check') {
-            steps {
-                withSonarQubeEnv(installationName: 'sq1') {
-                sh 'mvn clean install org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.inclusions=**/*.java -Dsonar.java.binaries=.'
-                }
-            }
-        }
+			stage('Check') {
+				steps {
+					withSonarQubeEnv(installationName: 'sq1') {
+						sh 'mvn clean install org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.inclusions=**/*.java -Dsonar.java.binaries=.'
+					}
+				}
+			}
 
-        stage('OWASP Dependency-Check Vulnerabilities') {
-      steps {
-        dependencyCheck additionalArguments: '''
-                    -o './'
-                    -s './target'
-                    -f 'ALL'
-                    --prettyPrint''', odcInstallation: 'dependency-check'
+			stage('OWASP Dependency-Check Vulnerabilities') {
+				steps {
+					dependencyCheck additionalArguments: '''
+						-o './'
+						-s './target'
+						-f 'ALL'
+						--prettyPrint''', odcInstallation: 'dependency-check'
 
-        dependencyCheckPublisher pattern: 'dependency-check-report.xml'
-      }
-    }
-    }
+						dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+				}
+			}
+		}
 
-    post {
-        success {
-            echo 'Pipeline completata con successo!'
-        }
-        failure {
-            echo 'Pipeline fallita!'
-        }
-    }
+	post {
+		success {
+			echo 'Pipeline completata con successo!'
+		}
+		failure {
+			echo 'Pipeline fallita!'
+		}
+	}
 }
 
 Praticamente specifica la root del progetto come destinazione dei binari.
+
+NUOVA pipeline con spotbugs:
+
+pipeline {
+	agent any
+
+		stages {
+			stage('Checkout') {
+				steps {
+					git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
+				}
+			}
+
+			stage('Check') {
+				steps {
+					withSonarQubeEnv(installationName: 'sq1') {
+						sh 'mvn clean install org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.inclusions=**/*.java -Dsonar.java.binaries=.'
+					}
+				}
+			}
+			stage('SpotBugs') {
+				steps {
+					sh 'spotbugs -html -output my-report.html -effort:max -xml:withMessages -sourcepath src/main/java target/classes'
+				}
+			}
+
+			// Dependency-Check
+			stage('OWASP Dependency-Check Vulnerabilities') {
+				steps {
+					dependencyCheck additionalArguments: '''
+						-o './'
+						-s './target'
+						-f 'ALL'
+						--prettyPrint''', odcInstallation: 'dependency-check'
+
+						dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+				}
+			}
+
+		}
+
+	post {
+		success {
+			echo 'Pipeline completata con successo!'
+		}
+		failure {
+			echo 'Pipeline fallita!'
+		}
+	}
+}
 
 Sul ThinkPad sembra andare, quindi è corretto. Capire perché sul fisso dava certi errori riguardo i Build Executors (forse bisogna veramente pulire il disco?). 
 Sì, era piena la partizione di root, e forse pure la home.
@@ -241,3 +291,6 @@ Sul ThinkPad la versione di docker è 5.4.2.
 Forse è inutile, ma sul portatile non risulta Java installato nel sistema.
 Riguardava sempre la partizione root, almeno 10% della capienza deve essere libero. Penso stessa cosa per la home, in
 quanto dopo aver cancellato dei file si è avviato correttamente.
+
+Per formattare decentemente i Jenkinsfile con Vim, copia-incollarli in una nuova tab, settare la sintassi in 'groovy'
+(:set syntax=groovy) e formattarlo (comando: gg=G). 
