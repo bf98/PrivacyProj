@@ -44,3 +44,11 @@
    Per visualizzare come sta procedendo una build, cliccare sulla build -> "Console Output".
 
 //// CONTINUARE ////
+## Report Vulnerabilità 
+
+Sono state eseguite analisi di sicurezza utilizzando SonarScanner, SpotBugs e OWASP Depedency-Check.
+In particolare, SonarScanner è stato utilizzato per analizzare la struttura dei file sorgenti .java, mentre SpotBugs per un'analisi
+statica del bytecode generato durante la compilazione. 
+Infine, OWASP Depedency-Check è servito per analizzare possibili vulnerabilità nelle librerie di terze parti utilizzate.
+Questi tool sono stati integrati all'interno della pipeline di Jenkins, consentendo un'analisi dinamica per ogni
+compilazione della codebase.
