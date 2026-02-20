@@ -1,3 +1,4 @@
+### Links 
 Installazione docker Jenkins + Maven: https://www.educative.io/answers/run-maven-with-jenkins-docker-image-via-custom-docker-build
 Installazione docker Jenkins + SonarQube: https://funnelgarden.com/sonarqube-jenkins-docker/
 Installazione docker Jenkins + SonarQube + Dependency-Check: https://jay75chauhan.medium.com/jenkins-ci-cd-with-docker-trivy-sonarqube-owasp-dependency-check-fc9b643aef90
@@ -6,6 +7,9 @@ Configurazione OWASP Dependency-Check con Maven: https://www.baeldung.com/java-m
 Configurazione OWASP Dependency-Check: https://security.docs.wso2.com/en/latest/security-guidelines/secure-engineering-guidelines/external-dependency-analysis-analysis-using-owasp-dependency-check/
 Video configurazione jenkins + sonarqube (no docker): https://www.youtube.com/watch?v=KsTMy0920go
 Docker compose jenkins + sonarqube con network condiviso?: https://www.devopsroles.com/sonarqube-from-a-jenkins-pipeline-job-in-docker
+Documentazione Jenkins archiviazione artefatti: https://www.jenkins.io/doc/pipeline/steps/core/#archiveartifacts-archive-the-artifacts
+Configurazione notifica mail Jenkins: https://navyadevops.hashnode.dev/setting-up-email-notifications-in-jenkins-step-by-step-guide
+Altro tutorial su notifiche mail Jenkins: https://devopscube.com/setup-jenkins-email-notification/ 
 Repository da compilare: https://github.com/shashirajraja/onlinebookstore
 
 ### TODO
@@ -18,10 +22,12 @@ Repository da compilare: https://github.com/shashirajraja/onlinebookstore
         }
     }
 [x] Aggiungere gestione fallimento/successo build (sezione post nella pipeline?);
-[ ] Salvare artefatto .jar in folder precisa (solo se build non fallisce);
+[x] Salvare artefatto .jar in folder precisa (solo se build non fallisce);
     Però effettivamente si tratta di un'applicativo web, quindi sembra strano che sia un solo jar.
+    Risposta: infatti, essendo un'applicativo web basato su java servlet, si tratta di un file .WAR.
     L'output della compilazione si trova dentro la directory "target" del workspace;
-[ ] Aggiungere notifica compilazione (e-mail? Forse codice "dummy" per far vedere come funziona e basta); 
+[x] Aggiungere notifica compilazione (e-mail? Forse codice "dummy" per far vedere come funziona e basta); 
+    Faccio in modo di mandare una e-mail locale (da jenkins a jenkins...) dalla pipeline utilizzando il tool mail tramite bash.
 [x] Aggiungere SpotBugs alla pipeline Jenkins (utilizzato sempre per analisi statica codice e.g. SonarQube, quindi eseguirlo prima di OWASP Dependecy-Check etc.);
     Capire perché dà un report strano (bisognava settare la flag -html).
 
@@ -61,6 +67,8 @@ Comandi comodi per Docker:
     docker run -d --name sonarqube -p 9000:9000 sonarqube
     // Accedere al container con cli 
     docker exec -it <container_id> bash
+    // Accedere al container con cli come utente root (root ha come ID 0)
+    docker exec -u 0 -it <container_id> bash
     // Cancellare dati inutilizzati Docker
     docker system prune -a
     // Cancellare dati Docker in maniera intensiva (tabula rasa)
@@ -281,6 +289,50 @@ pipeline {
 		}
 		failure {
 			echo 'Pipeline fallita!'
+		}
+	}
+}
+
+NUOVA pipeline con archiviazione artefatto:
+
+pipeline {
+	agent any
+		stages {
+			stage('Checkout') {
+				steps {
+					git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
+				}
+			}
+			stage('Check') {
+				steps {
+					withSonarQubeEnv(installationName: 'sq1') {
+						sh 'mvn clean install org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.inclusions=**/*.java -Dsonar.java.binaries=.'
+					}
+				}
+			}
+			stage('SpotBugs') {
+				steps {
+					sh 'spotbugs -html -output target/spotbugs-report.html -effort:max -xml:withMessages -sourcepath src/main/java target/'
+				}
+			}
+			stage('OWASP Dependency-Check Vulnerabilities') {
+				steps {
+					dependencyCheck additionalArguments: '''
+						-o './'
+						-s './target'
+						-f 'ALL'
+						--prettyPrint''', odcInstallation: 'dependency-check'
+
+						dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+				}
+			}
+		}
+	post {
+		success {
+			echo 'Build completata con successo'
+		}
+		failure {
+			echo 'Build fallita'
 		}
 	}
 }

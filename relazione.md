@@ -1,11 +1,40 @@
+## Panoramica
+
+In questo progetto abbiamo provato a configurare un ambiente di sviluppo CI/CD (Continuous Integration / Continuos Deployment) con Jenkins, 
+utilizzando diversi tool di analisi per valutare sia la sicurezza del codice che quella della build.
+
+Abbiamo deciso di utilizzare Docker, in quanto permette di implementare un sistema portabile e separato dall'infrastruttura che lo ospita.
+L'utilizzo di questo ambiente non solo migliora l'efficienza del ciclo di vita del software, ma assicura anche che buone pratiche di sicurezza vengano 
+rispettate in ogni fase del processo. 
+L'obiettivo finale è sviluppare un flusso di lavoro che non solo automatizzi le operazioni di build e deployment, ma che garantisca anche un'analisi 
+della sicurezza.
+
+La codebase utilizzata proviene da un repository GitHub di terze parti.
+Si tratta di un applicativo web con backend in Java.
+
+Per il recupero delle dipendenze, la compilazione e l'assemblaggio verrà usato Apache Maven.
+
+I tool che abbiamo utilizzato per analizzare la qualità del codice sono SonarQube e SpotBugs.
+Per identificare le vulneribilità delle dipendenze, invece, abbiamo utilizzato OWASP Dependency-Check.
+Più nel dettaglio, SonarScanner effettua un'analisi statica del codice sorgente, nel nostro caso file .java. 
+In pratica controlla la qualità del codice scritto, sia per quanto riguarda la struttura del codice che la difficoltà per lo sviluppatore 
+nel comprenderlo.
+Evidenzia se vengono seguite le Best Practices (standard e linee guida di stesura del codice), riducendo la probabilità di introdurre bug, 
+se parti di codice vengono ripetute inutilmente, eccetera.
+
+SpotBugs, invece, effettua un'analisi del bytecode generato durante la compilazione.
+Rispetto ai sorgenti java, l'analisi del bytecode Java (file .class) permette di identificare possibili bug e vulnerabilità nel codice 
+in un formato più vicino a quello eseguito dalla macchina virtuale Java (la JVM).
+In questo modo si potrebbero rilevare problemi run-time, per esempio provenienti da ottimizzazioni del compilatore.
+
 ## Installazione e Configurazione dell'ambiente
 
-* Creare immagine Jenkins custom (per avere Maven e SpotBugs al suo interno);
+* Creare immagine Jenkins custom (così da avere Maven e SpotBugs);
 * Creare directory "jenkins_home", dentro la quale si potrà accedere al filesystem del container Jenkins.
-  Impostare i permessi per tutti (chmod -R 777);
-* Avviare compose, costituito da un container Jenkins e un container SonarQube;
+  Impostare i permessi per lettura/scrittura directory (chmod -R 777);
+* Avviare compose, così da orchestrare un container Jenkins e un container SonarQube;
 * Aprire le loro interfacce web, raggiungibili su porta 8080 e 9000 (localhost:8080 e localhost:9000);
-* Creare account per entrambi. La password default di Jenkins è recuperabile all'interno del container (vedi note.md).
+* Creare account per entrambi. La password default di Jenkins è recuperabile all'interno del container.
   Per quanto riguarda SonarQube bisogna prima eseguire l'accesso come admin con password "admin", poi bisogna mettere
   cambiare necessariamente cambiare password.
 * Su Jenkins, andare nelle impostazioni "Plugins" e installare "SonarQube Scanner" e "OWASP Dependency-Check".
@@ -37,11 +66,64 @@
 * Dalla home di Jenkins, cliccare su "Create a Job". Questo ci permetterà di configurare compilazioni automatiche.
   Mettere un nome a scelta per il job, selezionare "Pipeline". Infine premere bottone "Ok".
   Appare il pannello di configurazione del Job, spostarsi al form della Pipeline.
-  All'interno di questo simil-editor, incollare la pipeline più recente nel file note.md.
+  All'interno di questo simil-editor, incollare la pipeline desiderata.
   Successivamente cliccare su "Apply" e "Save".
 * Per avviare la build, cliccare su "Build Now", a sinistra.
   Si può vedere l'andamento della build in "Builds", sotto.
   Per visualizzare come sta procedendo una build, cliccare sulla build -> "Console Output".
+
+## Dettagli Pipeline Jenkins
+
+In modo da automatizzare i processi di build dobbiamo configurare una pipeline su Jenkins.
+Questo strumento permette agli sviluppatori di assemblare, testare ed effettuare il deployment delle proprie
+applicazioni in un contesto CI/CD.
+
+Nella pratica consiste in una lista sequenziale di istruzioni, strutturata in codice in un cosiddetto Jenkinsfile.
+Qui riportiamo la nostra pipeline Jenkins:
+
+```groovy
+pipeline {
+	agent any
+		stages {
+			stage('Checkout') {
+				steps {
+					git url: 'https://github.com/shashirajraja/onlinebookstore.git', branch: 'master'
+				}
+			}
+			stage('Check') {
+				steps {
+					withSonarQubeEnv(installationName: 'sq1') {
+						sh 'mvn clean install org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.inclusions=**/*.java -Dsonar.java.binaries=.'
+					}
+				}
+			}
+			stage('SpotBugs') {
+				steps {
+					sh 'spotbugs -html -output target/spotbugs-report.html -effort:max -xml:withMessages -sourcepath src/main/java target/'
+				}
+			}
+			stage('OWASP Dependency-Check Vulnerabilities') {
+				steps {
+					dependencyCheck additionalArguments: '''
+						-o './'
+						-s './target'
+						-f 'ALL'
+						--prettyPrint''', odcInstallation: 'dependency-check'
+
+						dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+				}
+			}
+		}
+	post {
+		success {
+			echo 'Build completata con successo'
+		}
+		failure {
+			echo 'Build fallita'
+		}
+	}
+}
+```
 
 ## Report Vulnerabilità 
 
@@ -51,8 +133,6 @@ statica del bytecode generato durante la compilazione.
 Infine, OWASP Depedency-Check è servito per analizzare possibili vulnerabilità nelle librerie di terze parti utilizzate.
 Questi tool sono stati integrati all'interno della pipeline di Jenkins, consentendo un'analisi dinamica per ogni
 compilazione della codebase.
-
-# Analisi OWASP Dependency-Check
 
 OWASP Dependency-Check riporta una serie di problemi di sicurezza riguardo le librerie utilizzate, specialmente per
 quanto riguarda PostgreSQL (sistema RDSMS utilizzato), webapp-runner (tool che permette di eseguire applicativi web
@@ -80,18 +160,3 @@ MySQL).
    * OWASP Top 10: A10 - Insufficient Logging & Monitoring;
    * Descrizione: Un attaccante protrebbe sfruttare una configurazione di rete non sicura per provocare una negazione di
      servizio (DoS) attraverso richieste HTTP malformate.
-
-# Analisi SonarScanner
-
-SonarScanner effettua un'analisi statica del codice sorgente, nel nostro caso file .java. 
-In pratica controlla la qualità del codice scritto, sia per quanto riguarda la struttura del codice che la difficoltà per lo sviluppatore nel
-comprenderlo.
-Evidenzia se vengono seguite le Best Practices (standard e linee guida di stesura del codice), riducendo la probabilità
-di introdurre bug, se parti di codice vengono ripetute inutilmente, eccetera.
-
-# Analisi SpotBugs
-
-SpotBugs, a differenza di SonarScanner, effettua un'analisi del bytecode generato durante la compilazione.
-Rispetto ai sorgenti java, l'analisi del bytecode Java (file .class) permette di identificare possibili bug e
-vulnerabilità nel codice in un formato più vicino a quello eseguito dalla macchina virtuale Java (la JVM).
-In questo modo si potrebbero rilevare problemi run-time, per esempio provenienti da ottimizzazioni del compilatore.
