@@ -9,6 +9,7 @@ Video configurazione jenkins + sonarqube (no docker): https://www.youtube.com/wa
 Docker compose jenkins + sonarqube con network condiviso?: https://www.devopsroles.com/sonarqube-from-a-jenkins-pipeline-job-in-docker
 Documentazione Jenkins archiviazione artefatti: https://www.jenkins.io/doc/pipeline/steps/core/#archiveartifacts-archive-the-artifacts
 Configurazione notifica mail Jenkins: https://navyadevops.hashnode.dev/setting-up-email-notifications-in-jenkins-step-by-step-guide
+Configurazione SonarQube Quality-Gate (Web-Hook): https://tomgregory.com/sonarqube-quality-gates-in-jenkins-build-pipeline
 Altro tutorial su notifiche mail Jenkins: https://devopscube.com/setup-jenkins-email-notification/ 
 Repository da compilare: https://github.com/shashirajraja/onlinebookstore
 
@@ -30,6 +31,8 @@ Repository da compilare: https://github.com/shashirajraja/onlinebookstore
     Faccio in modo di mandare una e-mail locale (da jenkins a jenkins...) dalla pipeline utilizzando il tool mail tramite bash.
 [x] Aggiungere SpotBugs alla pipeline Jenkins (utilizzato sempre per analisi statica codice e.g. SonarQube, quindi eseguirlo prima di OWASP Dependecy-Check etc.);
     Capire perché dà un report strano (bisognava settare la flag -html).
+[x] Inserire mailutils tra i pacchetti da installare nel Dockerfile;
+[ ] Guardare meglio la questione di SpotBugs: come integrarlo meglio nella pipeline Jenkins;
 
 Nel caso si usasse Podman invece che Docker, per qualche motivo non si può usare la codifica
 <nome_immagine>:latest di default.

@@ -13,9 +13,14 @@ pipeline {
 					}
 				}
 			}
+			stage('Quality Gate') {
+				steps {
+                    waitForQualityGate abortPipeline: true
+				}
+			}
 			stage('SpotBugs') {
 				steps {
-					sh 'spotbugs -html -output target/spotbugs-report.html -effort:max -xml:withMessages -sourcepath src/main/java target/'
+					sh 'spotbugs -html -output spotbugs-report.html -effort:max -xml:withMessages -sourcepath src/main/java target/'
 				}
 			}
 			stage('OWASP Dependency-Check Vulnerabilities') {
@@ -29,10 +34,21 @@ pipeline {
 						dependencyCheckPublisher pattern: 'dependency-check-report.xml'
 				}
 			}
+			stage('Security Gate') {
+				steps {
+					script {
+						def hasVulnerabilities = readFile('dependency-check-report.html').contains('High')
+						if (hasVulnerabilities) {
+							error "Vulnerabilità rilevate. Pipeline abort."
+						}
+					}
+				}
+			}
 		}
 	post {
 		success {
 			echo 'Build completata con successo'
+			archiveArtifacts artifacts: 'target/*.war'
 		}
 		failure {
 			echo 'Build fallita'

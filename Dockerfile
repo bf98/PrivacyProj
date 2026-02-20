@@ -9,7 +9,7 @@ FROM jenkins/jenkins:latest
 USER root
 
 RUN apt-get update && \
-    apt-get install -y maven iputils-ping wget unzip && \
+    apt-get install -y maven iputils-ping wget unzip mailutils && \
     wget https://repo1.maven.org/maven2/com/github/spotbugs/spotbugs/4.9.8/spotbugs-4.9.8.zip && \
     unzip spotbugs-4.9.8.zip -d /opt/ && \
     rm spotbugs-4.9.8.zip
