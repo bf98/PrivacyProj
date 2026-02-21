@@ -254,3 +254,24 @@ public List<Book> getBooksByCommaSeperatedBookIds(String commaSeperatedBookIds) 
 Questo, riferendosi agli OWASP Top 10, presenta rischio di Broken Access Control e Injection, poiché la mancanza di una corretta validazione 
 dell'input potrebbe rendere l'applicazione vulnerabile a iniezioni SQL.
 La validazione dell'input, dunque, potrebbe essere una soluzione.
+
+Come detto precedentemente, altri warning ricevuti riguardano la struttura effettiva del codice, con costrutti non
+conformi alle best-practices o signature non uniformi.
+Tra i diversi esempi ci sono, per esempio, eccezioni non gestite, ovvero con campo vuoto.
+
+```java
+            int bQty = rs.getInt(5);
+
+            Book book = new Book(bCode, bName, bAuthor, bPrice, bQty);
+
+            books.add(book);
+
+        }
+
+    } catch (SQLException e) {
+
+    }
+
+    return books;
+}
+```
