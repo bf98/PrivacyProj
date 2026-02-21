@@ -275,3 +275,8 @@ Tra i diversi esempi ci sono, per esempio, eccezioni non gestite, ovvero con cam
     return books;
 }
 ```
+SpotBugs ha dato dei warning su potenziali bug nel software Java, visualizzabili nel report html generato. 
+Questi fanno parte di diverse categorie, come possibili comportamenti imprevisti nel codice (BC, Bug Class), 
+operazioni bitwise che potrebbero avere segni non controllati (BIT, Bitwise Operation), avvisi riguardanti
+l'implementazione di metodi di clonazione (CN, Cloneable), mancata gestione degli stream dei file (per esempio possibile fallimento
+nella chiusura dello stream).
